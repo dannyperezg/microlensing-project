@@ -110,9 +110,22 @@ def run_kmtnet_fit(times, fluxes, flux_errors):
         return np.sum((flux - model)**2 * inv_sigma2)
 
     # --- Grid Search: Build t0-teff grid for nonlinear fitting ---
+    delta_t0 = 1/3
+    delta_teff = 1/3
+    
     teff_min, teff_max = 1, 100
-    teff_list, t0_tE_list = [], []
-    current_teff = teff_min
+    teff_list = [teff_min]
+    while teff-list[-1] < teff_max:
+        teff_list.append(teff_list[-1] * (1 + delta_teff))
+
+    t0_min, t0_max = np.min(times), np.max(times)
+    t0_tE_list = []
+    for teff in teff_list:
+        t0_current = t0_min
+        while t0_current <= t0_max:
+            t0_tE_list.append([t0_current, teff])
+            t0_current += delta_t0 * teff
+
 
     # Build teff grid (teff_{k+1} = (1 + delta) * teff_k)
     while current_teff <= teff_max:
