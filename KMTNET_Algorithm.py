@@ -92,7 +92,7 @@ def run_kmtnet_fit(times, fluxes, flux_errors):
     def Ft_low(t, f_1, f_0, t0, t_eff):
          # Low-mag analytic approximation
         Q = 1 + ((t - t0) / t_eff)**2
-        return np.abs(f_1) * (1 - (1 + Q / 2)**-2)**(-1.0 / 2) + np.abs(f_0)
+        return np.abs(f_1) * (Q + 2*np.sqrt(Q*(Q+4)))
 
      # --- Chi2 Functions for Minimization ---
     def chi2_high(f_params, t, flux, flux_err, t0, teff):
@@ -110,22 +110,21 @@ def run_kmtnet_fit(times, fluxes, flux_errors):
         return np.sum((flux - model)**2 * inv_sigma2)
 
     # --- Grid Search: Build t0-teff grid for nonlinear fitting ---
-    delta_t0 = 1/3
-    delta_teff = 1/3
-    
+    # Build teff grid
     teff_min, teff_max = 1, 100
+    delta_teff = 1/3
     teff_list = [teff_min]
-    while teff-list[-1] < teff_max:
+    while teff_list[-1] < teff_max:
         teff_list.append(teff_list[-1] * (1 + delta_teff))
 
+# Build t0-teff grid
     t0_min, t0_max = np.min(times), np.max(times)
     t0_tE_list = []
     for teff in teff_list:
         t0_current = t0_min
         while t0_current <= t0_max:
             t0_tE_list.append([t0_current, teff])
-            t0_current += delta_t0 * teff
-
+            t0_current += delta_teff * teff
 
     # Build teff grid (teff_{k+1} = (1 + delta) * teff_k)
     while current_teff <= teff_max:
@@ -192,7 +191,7 @@ def run_kmtnet_fit(times, fluxes, flux_errors):
     min_value2 = min(param2, key=lambda x: x[7])
 
     # Use the regime (high or low mag) with the best global chi2
-    if min_value1 < min_value2:
+    if min_value1[7] < min_value2[7]:
               min_value = min_value1
               param = param1
               F_t = Ft_high
@@ -242,7 +241,7 @@ def run_kmtnet_fit(times, fluxes, flux_errors):
     if chi2_linearfit == 0:
         delta_chi_squared_kmt = 0
     else:
-        delta_chi_squared_kmt = (abs(chi_mlens - chi2_linearfit) / chi2_linearfit)
+        delta_chi_squared_kmt = (chi2_linearfit - chi_mlens) / chi2_linearfit
 
     # Return: delta chi2, best-fit physical params
     # If delta_chi_squared_kmt > 0.9, the light curve would be a microlensing candidate.
